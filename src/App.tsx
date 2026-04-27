@@ -788,6 +788,16 @@ function StatusBadge({ status }: { status: OrderStatus }) {
                 exit={{ opacity: 0, x: -20 }}
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               >
+                <button 
+                  onClick={() => setIsClientModalOpen(true)}
+                  className="bg-brand-sidebar/40 border border-dashed border-brand-border rounded-xl p-5 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-brand-primary hover:border-brand-primary/50 hover:bg-blue-600/5 transition-all group min-h-[160px]"
+                >
+                  <div className="p-3 rounded-full bg-brand-bg group-hover:bg-brand-primary/10 transition-colors">
+                    <Plus size={24} />
+                  </div>
+                  <span className="text-xs uppercase tracking-widest font-bold">Adicionar Cliente</span>
+                </button>
+
                 {clients.map((client) => (
                   <div key={client.id} className="bg-brand-sidebar border border-brand-border p-5 rounded-xl space-y-4 hover:border-brand-primary transition-all group shadow-sm">
                     <div className="flex items-start justify-between">
@@ -819,16 +829,6 @@ function StatusBadge({ status }: { status: OrderStatus }) {
                     </div>
                   </div>
                 ))}
-                
-                <button 
-                  onClick={() => setIsClientModalOpen(true)}
-                  className="bg-brand-sidebar/40 border border-dashed border-brand-border rounded-xl p-5 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-brand-primary hover:border-brand-primary/50 hover:bg-blue-600/5 transition-all group min-h-[160px]"
-                >
-                  <div className="p-3 rounded-full bg-brand-bg group-hover:bg-brand-primary/10 transition-colors">
-                    <Plus size={24} />
-                  </div>
-                  <span className="text-xs uppercase tracking-widest font-bold">Adicionar Cliente</span>
-                </button>
               </motion.div>
             )}
 
