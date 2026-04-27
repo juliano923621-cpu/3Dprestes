@@ -27,7 +27,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { supabase } from './lib/supabase';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { Auth } from './components/Auth';
 
 // --- Types ---
@@ -135,15 +135,24 @@ function StatusBadge({ status }: { status: OrderStatus }) {
     async function loadData() {
       try {
         setLoading(true);
+        if (!isSupabaseConfigured) return;
+
         const [
-          { data: clientsData },
-          { data: ordersData },
-          { data: settingsData }
+          clientsRes,
+          ordersRes,
+          settingsRes
         ] = await Promise.all([
           supabase.from('clients').select('*'),
           supabase.from('orders').select('*').order('created_at', { ascending: false }),
           supabase.from('settings').select('*').single()
         ]);
+
+        const clientsData = clientsRes.data;
+        const ordersData = ordersRes.data;
+        const settingsData = settingsRes.data;
+
+        if (clientsRes.error) console.warn("Clients load error:", clientsRes.error);
+        if (ordersRes.error) console.warn("Orders load error:", ordersRes.error);
 
         if (clientsData) {
           setClients(clientsData.map((c: any) => ({
@@ -179,8 +188,8 @@ function StatusBadge({ status }: { status: OrderStatus }) {
             }
           });
         }
-      } catch (error) {
-        console.error("Error loading Supabase data:", error);
+      } catch (error: any) {
+        console.error("Supabase load error:", error);
       } finally {
         setLoading(false);
       }

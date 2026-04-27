@@ -36,7 +36,11 @@ export function Auth({ onSession }: AuthProps) {
         onSession();
       }
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message === 'Invalid login credentials' ? 'Usuário ou senha incorretos. Verifique se você já criou a conta.' : error.message });
+      if (error.message === 'Failed to fetch') {
+        setMessage({ type: 'error', text: 'Erro de conexão: Verifique se a VITE_SUPABASE_URL está correta em Settings.' });
+      } else {
+        setMessage({ type: 'error', text: error.message === 'Invalid login credentials' ? 'Usuário ou senha incorretos. Verifique se você já criou a conta.' : error.message });
+      }
     } finally {
       setLoading(false);
     }
