@@ -1,14 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ibryfvmtwtrvvnvtrtzx.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_0MUMtROcbIoBrz-tSAF2ow_bYuTh63D';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("Supabase credentials missing. App will use mock/local mode.");
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  console.warn("Supabase credentials missing in env. Using default project credentials.");
 }
 
 const validUrl = (url: string | undefined): string => {
-  if (!url) return 'https://placeholder.supabase.co';
+  if (!url) return 'https://ibryfvmtwtrvvnvtrtzx.supabase.co';
   let formattedUrl = url.trim();
   
   // Remove suffixes like /rest/v1/ if the user pasted the direct REST URL
@@ -21,11 +21,11 @@ const validUrl = (url: string | undefined): string => {
     new URL(formattedUrl);
     return formattedUrl;
   } catch {
-    return 'https://placeholder.supabase.co';
+    return 'https://ibryfvmtwtrvvnvtrtzx.supabase.co';
   }
 };
 
-export const isSupabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+export const isSupabaseConfigured = true; // Forcing true since we have fallbacks now
 
 export const supabase = createClient(
   validUrl(supabaseUrl),
