@@ -273,7 +273,7 @@ function StatusBadge({ status }: { status: OrderStatus }) {
           <div className="w-8 h-8 rounded bg-brand-primary flex items-center justify-center">
             <Layers className="text-white" size={18} />
           </div>
-          <h1 className="font-bold text-white text-lg tracking-tight">Nexus CRM</h1>
+          <h1 className="font-bold text-white text-lg tracking-tight">3D Prestes</h1>
         </div>
 
         <nav className="flex-1 px-4 space-y-1">
@@ -307,7 +307,7 @@ function StatusBadge({ status }: { status: OrderStatus }) {
           </div>
           
           <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            Nexus CRM v1.0
+            3D Prestes v1.0
           </div>
         </div>
       </aside>
