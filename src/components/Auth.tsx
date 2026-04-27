@@ -53,7 +53,7 @@ export function Auth({ onSession }: AuthProps) {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md w-full bg-slate-800/50 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-10 space-y-8 relative z-10"
+        className="max-w-md w-full bg-slate-800/50 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-6 sm:p-10 space-y-8 relative z-10"
       >
         <div className="text-center space-y-2">
           <div className="inline-flex p-4 bg-blue-600 rounded-2xl text-white mb-2 shadow-lg shadow-blue-600/20">

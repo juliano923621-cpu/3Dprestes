@@ -19,6 +19,7 @@ import {
   TrendingUp,
   Settings,
   MoreVertical,
+  Menu,
   LogOut,
   X,
   CreditCard,
@@ -115,6 +116,7 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [materials] = useState<Material[]>(MATERIALS_INITIAL);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
@@ -459,21 +461,49 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   ];
 
   return (
-    <div className="flex h-screen bg-brand-bg overflow-hidden font-sans">
+    <div className="flex h-screen bg-brand-bg overflow-hidden font-sans relative">
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className="w-64 bg-brand-sidebar flex flex-col border-r border-brand-border z-20">
-        <div className="p-6 flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 rounded bg-brand-primary flex items-center justify-center">
-            <Layers className="text-white" size={18} />
+      <aside className={`
+        fixed inset-y-0 left-0 w-64 bg-brand-sidebar flex flex-col border-r border-brand-border z-40 
+        transition-transform duration-300 lg:relative lg:translate-x-0
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="p-6 flex items-center justify-between lg:justify-start gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-brand-primary flex items-center justify-center">
+              <Layers className="text-white" size={18} />
+            </div>
+            <h1 className="font-bold text-white text-lg tracking-tight">3D Prestes</h1>
           </div>
-          <h1 className="font-bold text-white text-lg tracking-tight">3D Prestes</h1>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden text-slate-400 hover:text-white"
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1">
+        <nav className="flex-1 px-4 space-y-1 mt-4">
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
+              onClick={() => {
+                setActiveTab(item.id as any);
+                setIsSidebarOpen(false);
+              }}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group ${
                 activeTab === item.id 
                   ? 'bg-brand-primary/20 text-blue-400 border border-brand-primary/30' 
@@ -488,57 +518,60 @@ function StatusBadge({ status }: { status: OrderStatus }) {
 
         <div className="p-6 border-t border-slate-800 space-y-6">
           <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Status Impressoras</p>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2 font-mono">Impressoras</p>
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="text-slate-200">Ender 3 S1</span>
               <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-200">Prusa MK4</span>
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
             </div>
           </div>
           
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 transition-all font-bold text-[10px] uppercase tracking-widest border border-red-500/20"
           >
             <LogOut size={14} />
             Sair do Sistema
           </button>
 
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            3D Prestes v1.1
+          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-600">
+            v1.2-responsive
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col bg-slate-50">
-        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-brand-border px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1 max-w-lg">
-            <div className="relative w-full group">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors" />
+      <main className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col bg-brand-bg">
+        <header className="sticky top-0 z-10 bg-brand-bg/80 backdrop-blur-md border-b border-brand-border px-4 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3 flex-1 max-w-lg">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 text-slate-400 hover:bg-slate-800 rounded-lg mr-1"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="relative w-full group hidden sm:block">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input 
                 type="text" 
-                placeholder="Pesquisar orçamentos ou peças..." 
-                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+                placeholder="Pesquisar..." 
+                className="w-full bg-brand-sidebar border border-brand-border rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-brand-primary"
               />
             </div>
+            <div className="sm:hidden font-bold text-white text-sm">3D Prestes</div>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button 
               onClick={() => setIsOrderModalOpen(true)}
-              className="bg-brand-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-brand-primary/90 transition-all active:scale-95"
+              className="bg-brand-primary text-white p-2 sm:px-4 sm:py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-brand-primary/90 transition-all flex items-center gap-2"
             >
-              + Novo Orçamento
+              <Plus size={18} />
+              <span className="hidden sm:inline">Novo Pedido</span>
             </button>
-            <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300"></div>
           </div>
         </header>
 
-        <div className="p-8 flex-1 max-w-7xl w-full mx-auto">
+        <div className="p-4 lg:p-8 flex-1 max-w-7xl w-full mx-auto text-slate-200">
           <AnimatePresence mode="wait">
             {activeTab === 'dashboard' && (
               <motion.div 
@@ -549,18 +582,18 @@ function StatusBadge({ status }: { status: OrderStatus }) {
                 className="space-y-8"
               >
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   {[
-                    { label: 'Faturamento Mensal', val: `R$ ${stats.totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: CreditCard, trend: '+12%', trendColor: 'text-emerald-600' },
-                    { label: 'Peças em Impressão', val: stats.active, icon: Printer, trend: 'Capacidade: 82%', trendColor: 'text-slate-400' },
-                    { label: 'Orçamentos Pendentes', val: stats.pendingQuotes.toString().padStart(2, '0'), icon: Calculator, trend: 'Urgente', trendColor: 'text-orange-500' },
-                    { label: 'Tempo Médio Entrega', val: '3.2 dias', icon: Clock, trend: 'Variação 0.4', trendColor: 'text-slate-400' },
+                    { label: 'Faturamento', val: `R$ ${stats.totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: CreditCard, trend: '+12%', trendColor: 'text-emerald-400' },
+                    { label: 'Peças em Impressão', val: stats.active, icon: Printer, trend: '82%', trendColor: 'text-slate-500' },
+                    { label: 'Orçamentos', val: stats.pendingQuotes.toString().padStart(2, '0'), icon: Calculator, trend: 'Urgente', trendColor: 'text-orange-400' },
+                    { label: 'Tempo Entrega', val: '3.2d', icon: Clock, trend: '0.4', trendColor: 'text-slate-500' },
                   ].map((stat, i) => (
-                    <div key={i} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <p className="text-sm text-slate-500 mb-1">{stat.label}</p>
+                    <div key={i} className="bg-brand-sidebar p-4 sm:p-5 rounded-xl border border-brand-border shadow-sm">
+                      <p className="text-[10px] sm:text-xs text-slate-500 uppercase font-mono mb-1">{stat.label}</p>
                       <div className="flex items-baseline gap-2">
-                        <h3 className="text-2xl font-bold text-slate-900">{stat.val}</h3>
-                        <span className={`text-xs font-bold ${stat.trendColor}`}>{stat.trend}</span>
+                        <h3 className="text-xl sm:text-2xl font-bold text-white">{stat.val}</h3>
+                        <span className={`text-[10px] font-bold ${stat.trendColor}`}>{stat.trend}</span>
                       </div>
                     </div>
                   ))}
@@ -679,7 +712,8 @@ function StatusBadge({ status }: { status: OrderStatus }) {
                 </div>
 
                 <div className="bg-brand-card border border-brand-border rounded-xl overflow-hidden shadow-2xl">
-                  <table className="w-full text-left">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[700px]">
                     <thead>
                       <tr className="bg-white/2 border-b border-brand-border text-[10px] font-mono text-gray-500 uppercase">
                         <th className="p-4 font-medium tracking-tighter">ID</th>
@@ -742,7 +776,8 @@ function StatusBadge({ status }: { status: OrderStatus }) {
                     </tbody>
                   </table>
                 </div>
-              </motion.div>
+              </div>
+            </motion.div>
             )}
             
             {activeTab === 'clients' && (
@@ -754,42 +789,42 @@ function StatusBadge({ status }: { status: OrderStatus }) {
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               >
                 {clients.map((client) => (
-                  <div key={client.id} className="bg-white border border-slate-200 p-5 rounded-xl space-y-4 hover:border-brand-primary transition-all group shadow-sm">
+                  <div key={client.id} className="bg-brand-sidebar border border-brand-border p-5 rounded-xl space-y-4 hover:border-brand-primary transition-all group shadow-sm">
                     <div className="flex items-start justify-between">
-                      <div className="w-12 h-12 rounded-lg bg-slate-50 flex items-center justify-center text-xl font-bold text-slate-700 border border-slate-200 cursor-default group-hover:bg-blue-50 group-hover:text-brand-primary transition-colors">
+                      <div className="w-12 h-12 rounded-lg bg-brand-bg flex items-center justify-center text-xl font-bold text-slate-200 border border-brand-border cursor-default group-hover:bg-blue-600/10 group-hover:text-brand-primary transition-colors">
                         {client.name.charAt(0)}
                       </div>
                       <div className="flex gap-1">
                         <button 
                           onClick={() => openEditClient(client)}
-                          className="p-1.5 hover:bg-blue-50 rounded-md transition-colors text-slate-400 hover:text-brand-primary"
+                          className="p-1.5 hover:bg-white/5 rounded-md transition-colors text-slate-500 hover:text-brand-primary"
                         >
                           <Settings size={14} />
                         </button>
                         <button 
                           onClick={() => handleDeleteClient(client.id)}
-                          className="p-1.5 hover:bg-red-50 rounded-md transition-colors text-slate-400 hover:text-red-500"
+                          className="p-1.5 hover:bg-red-500/10 rounded-md transition-colors text-slate-500 hover:text-red-500"
                         >
                           <X size={14} />
                         </button>
                       </div>
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900 group-hover:text-brand-primary transition-colors">{client.name}</h4>
+                      <h4 className="text-sm font-bold text-white group-hover:text-brand-primary transition-colors">{client.name}</h4>
                       <p className="text-[12px] text-slate-500 mt-0.5">{client.email}</p>
                     </div>
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider">
-                      <span className="text-slate-400">Pedidos: <span className="text-slate-700">{(orders.filter(o => o.clientId === client.id).length)}</span></span>
-                      <span className="text-slate-400">Total: <span className="text-brand-primary">R$ {orders.filter(o => o.clientId === client.id).reduce((a, b) => a + b.price, 0).toFixed(2)}</span></span>
+                    <div className="pt-4 border-t border-brand-border flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider">
+                      <span className="text-slate-500">Pedidos: <span className="text-slate-300">{(orders.filter(o => o.clientId === client.id).length)}</span></span>
+                      <span className="text-slate-500">Total: <span className="text-brand-primary">R$ {orders.filter(o => o.clientId === client.id).reduce((a, b) => a + b.price, 0).toFixed(2)}</span></span>
                     </div>
                   </div>
                 ))}
                 
                 <button 
                   onClick={() => setIsClientModalOpen(true)}
-                  className="bg-white/50 border border-dashed border-slate-300 rounded-xl p-5 flex flex-col items-center justify-center gap-3 text-slate-400 hover:text-brand-primary hover:border-brand-primary/50 hover:bg-blue-50/30 transition-all group min-h-[160px]"
+                  className="bg-brand-sidebar/40 border border-dashed border-brand-border rounded-xl p-5 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-brand-primary hover:border-brand-primary/50 hover:bg-blue-600/5 transition-all group min-h-[160px]"
                 >
-                  <div className="p-3 rounded-full bg-slate-100 group-hover:bg-brand-primary/10 transition-colors">
+                  <div className="p-3 rounded-full bg-brand-bg group-hover:bg-brand-primary/10 transition-colors">
                     <Plus size={24} />
                   </div>
                   <span className="text-xs uppercase tracking-widest font-bold">Adicionar Cliente</span>
@@ -904,62 +939,62 @@ function StatusBadge({ status }: { status: OrderStatus }) {
                 exit={{ opacity: 0, y: -20 }}
                 className="max-w-2xl mx-auto space-y-8"
               >
-                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-8">
-                  <div className="flex items-center gap-3 border-b border-slate-100 pb-6">
-                    <div className="p-2 bg-blue-50 rounded-lg text-brand-primary">
+                <div className="bg-brand-sidebar p-8 rounded-2xl border border-brand-border shadow-sm space-y-8">
+                  <div className="flex items-center gap-3 border-b border-brand-border pb-6">
+                    <div className="p-2 bg-brand-bg rounded-lg text-brand-primary">
                       <Settings size={20} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-slate-800">Parâmetros de Precificação</h3>
+                      <h3 className="text-lg font-bold text-white">Parâmetros de Precificação</h3>
                       <p className="text-sm text-slate-500">Configure os valores base que alimentam a calculadora de orçamentos.</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Custos Operacionais</h4>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider font-mono">Custos Operacionais</h4>
                       <div className="space-y-4">
                         <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-slate-700">Preço do Filamento (R$/kg)</label>
+                          <label className="text-sm font-medium text-slate-300">Preço do Filamento (R$/kg)</label>
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">R$</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">R$</span>
                             <input 
                               type="number" 
                               value={settings.materialPricePerKg}
                               onChange={(e) => setSettings({ ...settings, materialPricePerKg: parseFloat(e.target.value) || 0 })}
-                              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm transition-all focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                              className="w-full pl-10 pr-4 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm text-white transition-all focus:border-brand-primary outline-none"
                             />
                           </div>
-                          <p className="text-[10px] text-slate-400">Ex: R$ 120,00 para um rolo standard de 1kg.</p>
+                          <p className="text-[10px] text-slate-500 italic">Ex: R$ 120,00 para um rolo standard de 1kg.</p>
                         </div>
 
                         <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-slate-700">Hora Máquina (R$/h)</label>
+                          <label className="text-sm font-medium text-slate-300">Hora Máquina (R$/h)</label>
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">R$</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">R$</span>
                             <input 
                               type="number" 
                               value={settings.machinePricePerHour}
                               onChange={(e) => setSettings({ ...settings, machinePricePerHour: parseFloat(e.target.value) || 0 })}
-                              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm transition-all focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                              className="w-full pl-10 pr-4 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm text-white transition-all focus:border-brand-primary outline-none"
                             />
                           </div>
-                          <p className="text-[10px] text-slate-400">Inclui energia, depreciação e manutenção básica.</p>
+                          <p className="text-[10px] text-slate-500 italic">Inclui energia, depreciação e manutenção básica.</p>
                         </div>
                       </div>
                     </div>
 
                     <div className="space-y-4">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Multiplicadores de Risco</h4>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider font-mono">Multiplicadores de Risco</h4>
                       <div className="space-y-4">
                         <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-slate-700">Risco Baixo (Fator)</label>
+                          <label className="text-sm font-medium text-slate-300">Risco Baixo (Fator)</label>
                           <input 
                             type="number" 
                             step="0.1"
                             value={settings.multipliers.low}
                             onChange={(e) => setSettings({ ...settings, multipliers: { ...settings.multipliers, low: parseFloat(e.target.value) || 0 }})}
-                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm transition-all focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                            className="w-full px-4 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm text-white transition-all focus:border-brand-primary outline-none"
                           />
                         </div>
 
@@ -1014,7 +1049,7 @@ function StatusBadge({ status }: { status: OrderStatus }) {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-xl bg-white border border-slate-200 rounded-2xl shadow-2xl p-8 space-y-6"
+              className="relative w-full max-w-xl bg-white border border-slate-200 rounded-2xl shadow-2xl p-5 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-slate-800 uppercase tracking-tight">
