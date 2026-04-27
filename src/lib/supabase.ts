@@ -9,9 +9,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const validUrl = (url: string | undefined): string => {
   if (!url) return 'https://placeholder.supabase.co';
+  let formattedUrl = url.trim();
+  
+  // Remove suffixes like /rest/v1/ if the user pasted the direct REST URL
+  formattedUrl = formattedUrl.replace(/\/rest\/v1\/?$/, '');
+  
+  if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+    formattedUrl = `https://${formattedUrl}`;
+  }
   try {
-    new URL(url);
-    return url;
+    new URL(formattedUrl);
+    return formattedUrl;
   } catch {
     return 'https://placeholder.supabase.co';
   }

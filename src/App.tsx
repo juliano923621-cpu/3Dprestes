@@ -116,6 +116,27 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [materials] = useState<Material[]>(MATERIALS_INITIAL);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [editingClientId, setEditingClientId] = useState<string | null>(null);
+  const [newClient, setNewClient] = useState({ name: '', email: '', phone: '' });
+  const [newOrder, setNewOrder] = useState({
+    clientId: '',
+    pieceName: '',
+    materialId: '1',
+    weightGrams: 0,
+    printTimeHours: 0,
+    price: 0,
+    status: 'quoted' as OrderStatus
+  });
+
+  // --- Calculator Logic ---
+  const [calcWeight, setCalcWeight] = useState(100);
+  const [calcHours, setCalcHours] = useState(4);
+  const [calcComplexity, setCalcComplexity] = useState<'BAIXO' | 'MÉDIO' | 'ALTO'>('BAIXO');
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -197,22 +218,6 @@ function StatusBadge({ status }: { status: OrderStatus }) {
     loadData();
   }, [session]);
 
-  const [materials] = useState<Material[]>(MATERIALS_INITIAL);
-  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
-  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
-  const [editingClientId, setEditingClientId] = useState<string | null>(null);
-  const [newClient, setNewClient] = useState({ name: '', email: '', phone: '' });
-  const [newOrder, setNewOrder] = useState({
-    clientId: '',
-    pieceName: '',
-    materialId: '1',
-    weightGrams: 0,
-    printTimeHours: 0,
-    price: 0,
-    status: 'quoted' as OrderStatus
-  });
-
   // Basic Sync to LocalStorage (reverting from Supabase-only to ensure it works)
   useEffect(() => {
     localStorage.setItem('3dprint_orders', JSON.stringify(orders));
@@ -225,6 +230,59 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   useEffect(() => {
     localStorage.setItem('3dprint_settings', JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    async function syncSettings() {
+      if (loading || !session) return;
+      await supabase.from('settings').upsert({
+        user_id: session.user.id,
+        material_price_per_kg: settings.materialPricePerKg,
+        machine_price_per_hour: settings.machinePricePerHour,
+        multiplier_low: settings.multipliers.low,
+        multiplier_medium: settings.multipliers.medium,
+        multiplier_high: settings.multipliers.high
+      });
+    }
+    syncSettings();
+  }, [settings, loading, session]);
+
+  const calculatedPrice = useMemo(() => {
+    const materialCost = (calcWeight / 1000) * settings.materialPricePerKg;
+    const powerAndWear = calcHours * settings.machinePricePerHour;
+    const complexityMultiplier = calcComplexity === 'BAIXO' 
+      ? settings.multipliers.low 
+      : calcComplexity === 'MÉDIO' 
+        ? settings.multipliers.medium 
+        : settings.multipliers.high;
+    return (materialCost + powerAndWear) * complexityMultiplier;
+  }, [calcWeight, calcHours, calcComplexity, settings]);
+
+  const orderStats = useMemo(() => {
+    return orders.reduce((acc, order) => {
+      acc[order.clientId] = (acc[order.clientId] || 0) + order.price;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [orders]);
+
+  const stats = useMemo(() => {
+    const active = orders.filter(o => ['queued', 'printing'].includes(o.status)).length;
+    const totalSales = orders.filter(o => o.status !== 'cancelled').reduce((acc, curr) => acc + curr.price, 0);
+    const pendingQuotes = orders.filter(o => o.status === 'quoted').length;
+    return { active, totalSales, pendingQuotes };
+  }, [orders]);
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Auth onSession={() => {}} />;
+  }
+
 
   const handleCreateClient = async () => {
     if (!newClient.name || !session) return;
@@ -368,9 +426,7 @@ function StatusBadge({ status }: { status: OrderStatus }) {
     });
     setEditingOrderId(order.id);
     setIsOrderModalOpen(true);
-  };
-
-  const openEditClient = (client: Client) => {
+  };  const openEditClient = (client: Client) => {
     setNewClient({
       name: client.name,
       email: client.email,
@@ -387,68 +443,12 @@ function StatusBadge({ status }: { status: OrderStatus }) {
     }
   };
 
-  useEffect(() => {
-    async function syncSettings() {
-      if (loading || !session) return;
-      await supabase.from('settings').upsert({
-        user_id: session.user.id,
-        material_price_per_kg: settings.materialPricePerKg,
-        machine_price_per_hour: settings.machinePricePerHour,
-        multiplier_low: settings.multipliers.low,
-        multiplier_medium: settings.multipliers.medium,
-        multiplier_high: settings.multipliers.high
-      });
-    }
-    syncSettings();
-  }, [settings, loading, session]);
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setSession(null);
     setOrders([]);
     setClients([]);
   };
-
-  if (isAuthChecking) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <Auth onSession={() => {}} />;
-  }
-
-  // --- Calculator Logic ---
-  const [calcWeight, setCalcWeight] = useState(100);
-  const [calcHours, setCalcHours] = useState(4);
-  const [calcComplexity, setCalcComplexity] = useState<'BAIXO' | 'MÉDIO' | 'ALTO'>('BAIXO');
-
-  const calculatedPrice = useMemo(() => {
-    const materialCost = (calcWeight / 1000) * settings.materialPricePerKg;
-    const powerAndWear = calcHours * settings.machinePricePerHour;
-    const complexityMultiplier = calcComplexity === 'BAIXO' 
-      ? settings.multipliers.low 
-      : calcComplexity === 'MÉDIO' 
-        ? settings.multipliers.medium 
-        : settings.multipliers.high;
-    return (materialCost + powerAndWear) * complexityMultiplier;
-  }, [calcWeight, calcHours, calcComplexity, settings]);
-  const orderStats = useMemo(() => {
-    return orders.reduce((acc, order) => {
-      acc[order.clientId] = (acc[order.clientId] || 0) + order.price;
-      return acc;
-    }, {} as Record<string, number>);
-  }, [orders]);
-
-  const stats = useMemo(() => {
-    const active = orders.filter(o => ['queued', 'printing'].includes(o.status)).length;
-    const totalSales = orders.filter(o => o.status !== 'cancelled').reduce((acc, curr) => acc + curr.price, 0);
-    const pendingQuotes = orders.filter(o => o.status === 'quoted').length;
-    return { active, totalSales, pendingQuotes };
-  }, [orders]);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
