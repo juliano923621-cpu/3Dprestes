@@ -26,8 +26,6 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { supabase } from './lib/supabase';
-import { Auth } from './components/Auth';
 
 // --- Types ---
 
@@ -98,92 +96,30 @@ function StatusBadge({ status }: { status: OrderStatus }) {
       {config.label}
     </span>
   );
-}
-
-export default function App() {
-  const [session, setSession] = useState<any>(null);
+}export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'clients' | 'calculator' | 'settings'>('dashboard');
-  const [settings, setSettings] = useState({
-    materialPricePerKg: 120,
-    machinePricePerHour: 5,
-    multipliers: {
-      low: 1.5,
-      medium: 2,
-      high: 2.5
-    }
-  });
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!session) return;
-    async function loadData() {
-      try {
-        const [
-          { data: clientsData },
-          { data: ordersData },
-          { data: settingsData }
-        ] = await Promise.all([
-          supabase.from('clients').select('*'),
-          supabase.from('orders').select('*').order('created_at', { ascending: false }),
-          supabase.from('settings').select('*').single()
-        ]);
-
-        if (clientsData) {
-          setClients(clientsData.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            email: c.email || '',
-            phone: c.phone || ''
-          })));
-        }
-        
-        if (ordersData) {
-          setOrders(ordersData.map((o: any) => ({
-            id: o.id,
-            clientId: o.client_id,
-            pieceName: o.piece_name,
-            materialId: o.material_id,
-            weightGrams: o.weight_grams,
-            printTimeHours: o.print_time_hours,
-            status: o.status,
-            price: o.price,
-            createdAt: o.created_at
-          })));
-        }
-
-        if (settingsData) {
-          setSettings({
-            materialPricePerKg: settingsData.material_price_per_kg,
-            machinePricePerHour: settingsData.machine_price_per_hour,
-            multipliers: {
-              low: settingsData.multiplier_low,
-              medium: settingsData.multiplier_medium,
-              high: settingsData.multiplier_high
-            }
-          });
-        }
-      } catch (error) {
-        console.error("Error loading Supabase data:", error);
-      } finally {
-        setLoading(false);
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem('3dprint_settings');
+    return saved ? JSON.parse(saved) : {
+      materialPricePerKg: 120,
+      machinePricePerHour: 5,
+      multipliers: {
+        low: 1.5,
+        medium: 2,
+        high: 2.5
       }
-    }
-    loadData();
-  }, [session]);
+    };
+  });
+
+  const [orders, setOrders] = useState<Order[]>(() => {
+    const saved = localStorage.getItem('3dprint_orders');
+    return saved ? JSON.parse(saved) : ORDERS_INITIAL;
+  });
+
+  const [clients, setClients] = useState<Client[]>(() => {
+    const saved = localStorage.getItem('3dprint_clients');
+    return saved ? JSON.parse(saved) : CLIENTS_INITIAL;
+  });
 
   const [materials] = useState<Material[]>(MATERIALS_INITIAL);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
@@ -201,108 +137,47 @@ export default function App() {
     status: 'quoted' as OrderStatus
   });
 
-  const handleCreateClient = async () => {
+  // Basic Sync to LocalStorage (reverting from Supabase-only to ensure it works)
+  useEffect(() => {
+    localStorage.setItem('3dprint_orders', JSON.stringify(orders));
+  }, [orders]);
+
+  useEffect(() => {
+    localStorage.setItem('3dprint_clients', JSON.stringify(clients));
+  }, [clients]);
+
+  useEffect(() => {
+    localStorage.setItem('3dprint_settings', JSON.stringify(settings));
+  }, [settings]);
+
+  const handleCreateClient = () => {
     if (!newClient.name) return;
-    
     if (editingClientId) {
-      const { data, error } = await supabase
-        .from('clients')
-        .update({
-          name: newClient.name,
-          email: newClient.email,
-          phone: newClient.phone
-        })
-        .eq('id', editingClientId)
-        .select();
-      
-      if (!error && data) {
-        setClients(clients.map(c => c.id === editingClientId ? {
-          id: data[0].id,
-          name: data[0].name,
-          email: data[0].email || '',
-          phone: data[0].phone || ''
-        } : c));
-      }
+      setClients(clients.map(c => c.id === editingClientId ? { ...c, ...newClient } : c));
       setEditingClientId(null);
     } else {
-      const { data, error } = await supabase
-        .from('clients')
-        .insert([{
-          user_id: session.user.id,
-          name: newClient.name,
-          email: newClient.email,
-          phone: newClient.phone
-        }])
-        .select();
-      
-      if (!error && data) {
-        setClients([...clients, {
-          id: data[0].id,
-          name: data[0].name,
-          email: data[0].email || '',
-          phone: data[0].phone || ''
-        }]);
-      }
+      const client: Client = {
+        id: Math.random().toString(36).substr(2, 9),
+        ...newClient
+      };
+      setClients([...clients, client]);
     }
     setNewClient({ name: '', email: '', phone: '' });
     setIsClientModalOpen(false);
   };
 
-  const handleCreateOrder = async () => {
+  const handleCreateOrder = () => {
     if (!newOrder.pieceName || !newOrder.clientId) return;
-    
-    const dbPayload = {
-      user_id: session.user.id,
-      client_id: newOrder.clientId,
-      piece_name: newOrder.pieceName,
-      material_id: newOrder.materialId,
-      weight_grams: newOrder.weightGrams,
-      print_time_hours: newOrder.printTimeHours,
-      price: newOrder.price,
-      status: newOrder.status
-    };
-
     if (editingOrderId) {
-      const { data, error } = await supabase
-        .from('orders')
-        .update(dbPayload)
-        .eq('id', editingOrderId)
-        .select();
-      
-      if (!error && data) {
-        setOrders(orders.map(o => o.id === editingOrderId ? {
-          id: data[0].id,
-          clientId: data[0].client_id,
-          pieceName: data[0].piece_name,
-          materialId: data[0].material_id,
-          weightGrams: data[0].weight_grams,
-          printTimeHours: data[0].print_time_hours,
-          status: data[0].status,
-          price: data[0].price,
-          createdAt: data[0].created_at
-        } : o));
-      }
+      setOrders(orders.map(o => o.id === editingOrderId ? { ...o, ...newOrder } : o));
       setEditingOrderId(null);
     } else {
-      const newId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-      const { data, error } = await supabase
-        .from('orders')
-        .insert([{ id: newId, ...dbPayload }])
-        .select();
-      
-      if (!error && data) {
-        setOrders([{
-          id: data[0].id,
-          clientId: data[0].client_id,
-          pieceName: data[0].piece_name,
-          materialId: data[0].material_id,
-          weightGrams: data[0].weight_grams,
-          printTimeHours: data[0].print_time_hours,
-          status: data[0].status,
-          price: data[0].price,
-          createdAt: data[0].created_at
-        }, ...orders]);
-      }
+      const order: Order = {
+        id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+        createdAt: new Date().toISOString(),
+        ...newOrder
+      };
+      setOrders([order, ...orders]);
     }
     setNewOrder({
       clientId: '',
@@ -316,19 +191,13 @@ export default function App() {
     setIsOrderModalOpen(false);
   };
 
-  const handleDeleteOrder = async (id: string) => {
-    const { error } = await supabase.from('orders').delete().eq('id', id);
-    if (!error) {
-      setOrders(orders.filter(o => o.id !== id));
-    }
+  const handleDeleteOrder = (id: string) => {
+    setOrders(orders.filter(o => o.id !== id));
   };
 
-  const handleDeleteClient = async (id: string) => {
-    const { error } = await supabase.from('clients').delete().eq('id', id);
-    if (!error) {
-      setOrders(orders.filter(o => o.clientId !== id));
-      setClients(clients.filter(c => c.id !== id));
-    }
+  const handleDeleteClient = (id: string) => {
+    setOrders(orders.filter(o => o.clientId !== id));
+    setClients(clients.filter(c => c.id !== id));
   };
 
   const openEditOrder = (order: Order) => {
@@ -355,27 +224,9 @@ export default function App() {
     setIsClientModalOpen(true);
   };
 
-  const updateOrderStatus = async (id: string, status: OrderStatus) => {
-    const { error } = await supabase.from('orders').update({ status }).eq('id', id);
-    if (!error) {
-      setOrders(orders.map(o => o.id === id ? { ...o, status } : o));
-    }
+  const updateOrderStatus = (id: string, status: OrderStatus) => {
+    setOrders(orders.map(o => o.id === id ? { ...o, status } : o));
   };
-
-  useEffect(() => {
-    async function syncSettings() {
-      if (loading || !session) return;
-      await supabase.from('settings').upsert({
-        user_id: session.user.id,
-        material_price_per_kg: settings.materialPricePerKg,
-        machine_price_per_hour: settings.machinePricePerHour,
-        multiplier_low: settings.multipliers.low,
-        multiplier_medium: settings.multipliers.medium,
-        multiplier_high: settings.multipliers.high
-      });
-    }
-    syncSettings();
-  }, [settings, loading, session]);
 
   // --- Calculator Logic ---
   const [calcWeight, setCalcWeight] = useState(100);
@@ -413,17 +264,6 @@ export default function App() {
     { id: 'calculator', label: 'Calculadora', icon: Calculator },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    setOrders([]);
-    setClients([]);
-  };
-
-  if (!session) {
-    return <Auth onSession={() => {}} />;
-  }
 
   return (
     <div className="flex h-screen bg-brand-bg overflow-hidden font-sans">
@@ -466,13 +306,9 @@ export default function App() {
             </div>
           </div>
           
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
-          >
-            <LogOut size={14} />
-            Sair do Sistema
-          </button>
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+            Nexus CRM v1.0
+          </div>
         </div>
       </aside>
 
