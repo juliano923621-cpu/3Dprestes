@@ -10,8 +10,8 @@ interface AuthProps {
 export function Auth({ onSession }: AuthProps) {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('3dprestes@gestao.com');
-  const [password, setPassword] = useState('92369236');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(
     !isSupabaseConfigured ? { type: 'error', text: 'Supabase não configurado. Adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no menu Settings.' } : null
   );
@@ -96,7 +96,7 @@ export function Auth({ onSession }: AuthProps) {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ex: 3dprestes@gestao.com"
+                  placeholder="seu@email.com"
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-white placeholder:text-slate-600"
                 />
               </div>
@@ -111,7 +111,7 @@ export function Auth({ onSession }: AuthProps) {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="92369236"
+                  placeholder="sua senha"
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-white placeholder:text-slate-600"
                 />
               </div>
